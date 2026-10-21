@@ -66,7 +66,7 @@ function promptFor(q: QData): string {
     case 'spotError': return `حلّ ${q.d.who} هذه المسألة وأخطأ. المس الرقم الخطأ، ثم اكتب الناتج الصحيح.`;
     case 'matchEqual':
       return q.d.commutative ? 'صِل كل عملية بالعملية المساوية لها بدون حساب.' : 'صِل كل عملية بالعملية التي لها نفس الناتج.';
-    case 'wordProblem': return q.d.text;
+    case 'wordProblem': return fill(q.d.text, { a: q.d.a, b: q.d.b });
     case 'fillBlank': return 'أكمل:';
     case 'countScene': return 'عُدّ كل صنف (المس الشيء لتشطب عليه)، ثم اكتب العدد في الجدول.';
     case 'completeGraph': return 'أكمل الرسم البياني: المس الخانات لتلوين الدوائر من أسفل لأعلى.';

@@ -97,6 +97,7 @@ export interface Category {
 }
 
 export interface Shared {
+  chapters: Record<string, string>;
   names: { m: string[]; f: string[] };
   themes: { title: string; items: Category[] }[];
 }
