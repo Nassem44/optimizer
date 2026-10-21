@@ -1,0 +1,57 @@
+{
+  "id": "ch3-lesson3",
+  "chapter": 3,
+  "lesson": 3,
+  "order": 9,
+  "title": "العلاقة بين الطرح والجمع",
+  "subtitle": "الفصل ٣ — الدرس ٥",
+  "pages": "٧٠–٧٤",
+  "skill": "sub-check",
+  "questionTypes": [
+    {
+      "kind": "subCheck",
+      "weight": 3
+    },
+    {
+      "kind": "matchEqual",
+      "weight": 2,
+      "variants": [
+        "check"
+      ]
+    },
+    {
+      "kind": "vgrid",
+      "weight": 1
+    }
+  ],
+  "limits": {
+    "op": "sub",
+    "borrow": "any",
+    "maxMinuend": 99,
+    "minResult": 1,
+    "forms": [
+      "2d-2d",
+      "2d-1d",
+      "tens-2d"
+    ]
+  },
+  "hints": {
+    "subCheck": "الفرق + المطروح = المطروح منه.",
+    "matchEqual": "لكل عملية طرح: اجمع الفرق مع المطروح، يجب أن يعطي المطروح منه.",
+    "vgrid": "اطرح الآحاد أولاً، ثم العشرات."
+  },
+  "commonMistakes": [
+    {
+      "id": "check-wrong",
+      "hint": "للتحقق نجمع الفرق ({correct}) مع المطروح ({b})، فيجب أن يعطي المطروح منه ({a})."
+    },
+    {
+      "id": "smaller-from-larger",
+      "hint": "لا نطرح الآحاد بالعكس! خذ ١ من العشرات أولاً."
+    },
+    {
+      "id": "borrow-no-decrease",
+      "hint": "أخذت ١ من العشرات؟ إذن تصبح العشرات {newTens} وليس {tensA}."
+    }
+  ]
+}

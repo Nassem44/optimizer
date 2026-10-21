@@ -69,6 +69,28 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 800, height: 1280
   ok((await page.locator('.vframe .slot.c-o').textContent()) === '٧', `[${tag}] لوحة الأرقام تكتب في الآحاد أولاً`);
   ok(await tensSlot.evaluate((e) => e.classList.contains('active')), `[${tag}] ثم تنتقل للعشرات`);
 
+  // ---- الطرح بالاستلاف: ٤٢ − ١٨
+  await page.goto(url('#harness?lesson=ch3-lesson2&kind=vgrid&a=42&b=18'));
+  await page.waitForSelector('.vframe');
+  const sub = await page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const cells = [...document.querySelectorAll('.vframe .vc:not(.slot)')];
+    const sign = [...document.querySelectorAll('.vframe .vsign')].find((s) => s.textContent === '−');
+    const circles = [...document.querySelectorAll('.vframe .borrow')];
+    return {
+      top: cells.slice(0, 2).sort((x, y) => box(x).left - box(y).left).map((c) => c.textContent).join(''),
+      signRight: !!sign && box(sign).left > box(cells[3]).right - 1,
+      circlesAbove: circles.length === 2 && circles.every((c, i) => box(c).bottom <= box(cells[i]).top + 1 && Math.abs(box(c).left + box(c).width / 2 - (box(cells[i]).left + box(cells[i]).width / 2)) < 8),
+    };
+  });
+  ok(sub.top === '٤٢', `[${tag}] المطروح منه ٤٢ لا ينعكس`);
+  ok(sub.signRight, `[${tag}] علامة − على يمين المطروح`);
+  ok(sub.circlesAbove, `[${tag}] دائرتا الاستلاف فوق العشرات والآحاد`);
+  await page.locator('.vframe .borrow').first().click();
+  await page.locator('.numpad .k3').click();
+  ok(await page.locator('.vframe .vc.c-t').first().evaluate((e) => e.classList.contains('struck')), `[${tag}] كتابة الرقم الجديد تشطب رقم العشرات القديم`);
+  if (shotDir) await page.screenshot({ path: `${shotDir}/sub-borrow-${viewport.width}.png` });
+
   // ---- الرسم البياني
   await page.goto(url('#harness?lesson=ch1-lesson2&kind=graphToTable&seed=3'));
   await page.waitForSelector('.graph');
@@ -93,7 +115,8 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 800, height: 1280
     const shots = [
       ['ch2-lesson1', 'placeValue'], ['ch2-lesson1', 'freeVertical'], ['ch2-lesson1', 'spotError'], ['ch2-lesson1', 'matchEqual'],
       ['ch2-lesson1', 'wordProblem'], ['ch2-lesson2', 'vgrid'], ['ch2-lesson3', 'fillBlank'], ['ch1-lesson1', 'countScene'],
-      ['ch1-lesson1', 'completeGraph'], ['ch1-lesson2', 'graphRead'], ['ch1-lesson2', 'missingName'], ['ch1-lesson3', 'compareGraphs'],
+      ['ch1-lesson1', 'completeGraph'], ['ch3-lesson1', 'freeVertical'], ['ch3-lesson1', 'spotError'], ['ch3-lesson1', 'wordProblem'],
+      ['ch3-lesson2', 'placeValue'], ['ch3-lesson2', 'spotError'], ['ch3-lesson3', 'subCheck'], ['ch3-lesson3', 'matchEqual'], ['ch1-lesson2', 'graphRead'], ['ch1-lesson2', 'missingName'], ['ch1-lesson3', 'compareGraphs'],
     ];
     for (const [l, k] of shots) {
       await page.goto(url(`#harness?lesson=${l}&kind=${k}&seed=11`));

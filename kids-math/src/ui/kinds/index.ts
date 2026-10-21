@@ -1,7 +1,7 @@
 import type { Question } from '../../engine/types';
 import type { Ctx, KindView } from './types';
 import { freeVerticalView, placeValueView, spotErrorView, vgridView } from './vertical';
-import { fillBlankView, matchView, wordView } from './addition';
+import { fillBlankView, matchView, subCheckView, wordView } from './addition';
 import { compareView, completeGraphView, conceptualView, countSceneView, graphReadView, graphToTableView, missingNameView } from './graph';
 
 /** نوع السؤال ← مكوّنه. نوع جديد = سطر جديد هنا. */
@@ -21,5 +21,6 @@ export function viewFor(q: Question, ctx: Ctx): KindView {
     case 'graphRead': return graphReadView(q, ctx);
     case 'conceptual': return conceptualView(q, ctx);
     case 'compareGraphs': return compareView(q, ctx);
+    case 'subCheck': return subCheckView(q, ctx);
   }
 }

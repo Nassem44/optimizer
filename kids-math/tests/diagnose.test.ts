@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { check, diagnoseAdd } from '../src/engine/check';
+import { check, diagnoseAdd, diagnoseSub } from '../src/engine/check';
 import { generate } from '../src/engine/generate';
 import { hintFor } from '../src/engine/feedback';
 import { lessonById } from '../src/engine/content';
@@ -51,6 +51,52 @@ function findQ(lessonId: string, kind: Question['kind'], pred: (q: Question) => 
   }
   throw new Error('لم أجد سؤالاً مناسباً');
 }
+
+describe('تشخيص أخطاء الطرح', () => {
+  const cases: [number, number, number, string][] = [
+    [75, 5, 25, 'ones-under-tens'], // ص ٥٥
+    [42, 18, 36, 'smaller-from-larger'], // من المنهج
+    [42, 18, 34, 'borrow-no-decrease'], // من المنهج
+    [86, 27, 95, 'reversed-digits'], // الصحيح ٥٩
+    [45, 23, 68, 'wrong-operation'],
+    [48, 23, 5, 'forgot-tens'],
+    [86, 27, 58, 'calc'],
+  ];
+  for (const [a, b, ans, err] of cases) {
+    it(`${a} − ${b} = ${ans} → ${err}`, () => expect(diagnoseSub(a, b, ans).error).toBe(err));
+  }
+  it('٣٥ − ٢٧ = ٨ صحيحة بدون كتابة صفر العشرات', () => {
+    const q = generate({ lessonId: 'ch3-lesson2', kind: 'vgrid', seed: 1 });
+    if (q.kind !== 'vgrid') throw 0;
+    const d = { ...q.d, a: 35, b: 27, result: 8 };
+    expect(check({ ...q, d }, { kind: 'grid', tens: null, ones: 8 }).correct).toBe(true);
+  });
+  it('تلميح الاستلاف يذكر الأرقام الصحيحة', () => {
+    const q = generate({ lessonId: 'ch3-lesson2', kind: 'vgrid', seed: 1 });
+    expect(hintFor(lessonById('ch3-lesson2'), q, diagnoseSub(42, 18, 34))).toContain('تصبح العشرات ٣ وليس ٤');
+  });
+  it('التحقق بالجمع', () => {
+    const q = generate({ lessonId: 'ch3-lesson3', kind: 'subCheck', seed: 3 });
+    if (q.kind !== 'subCheck') throw 0;
+    const { a, b } = q.d;
+    expect(check(q, { kind: 'subCheck', diff: a - b, x: b, y: a - b }).correct).toBe(true);
+    expect(check(q, { kind: 'subCheck', diff: a - b, x: a - b, y: a }).error).toBe('check-wrong');
+  });
+  it('مسألة طرح: الجمع بدل الطرح، وعكس ترتيب الطرح', () => {
+    const q = generate({ lessonId: 'ch3-lesson1', kind: 'wordProblem', seed: 4 });
+    if (q.kind !== 'wordProblem') throw 0;
+    const { a, b } = q.d;
+    expect(check(q, { kind: 'word', op: '+', x: a, y: b, result: a + b, unit: q.d.unit }).error).toBe('wrong-operation');
+    expect(check(q, { kind: 'word', op: '-', x: b, y: a, result: a - b, unit: q.d.unit }).error).toBe('bigger-on-top');
+  });
+  it('السحب: المطروح منه يجب أن يكون في الأعلى', () => {
+    const q = findQ('ch3-lesson1', 'freeVertical', (q) => q.kind === 'freeVertical' && q.d.b >= 10);
+    if (q.kind !== 'freeVertical') throw 0;
+    const { a, b } = q.d;
+    const row = (n: number): [number, number] => [Math.floor(n / 10), n % 10];
+    expect(check(q, { kind: 'placement', rows: [row(b), row(a)], tens: null, ones: 1 }).error).toBe('bigger-on-top');
+  });
+});
 
 describe('الجمع الرأسي الحر (سحب الأرقام)', () => {
   it('يكتشف وضع العدد ذي الرقم الواحد تحت العشرات', () => {
@@ -106,6 +152,6 @@ describe('المسائل اللفظية', () => {
     const q = generate({ lessonId: 'ch2-lesson1', kind: 'wordProblem', seed: 5 });
     if (q.kind !== 'wordProblem') throw 0;
     const wrong = q.d.unitChoices.find((u) => u !== q.d.unit)!;
-    expect(check(q, { kind: 'word', op: '+', x: q.d.a, y: q.d.b, result: q.d.sum, unit: wrong }).error).toBe('wrong-unit');
+    expect(check(q, { kind: 'word', op: '+', x: q.d.a, y: q.d.b, result: q.d.result, unit: wrong }).error).toBe('wrong-unit');
   });
 });

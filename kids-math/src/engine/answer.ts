@@ -10,17 +10,21 @@ export function correctResponse(q: Question): Response {
   switch (q.kind) {
     case 'vgrid':
     case 'placeValue':
-      return grid(q.d.sum, q.d.carry);
+      if (q.d.op === '-' && q.d.regroup)
+        return { ...grid(q.d.result, false), borrowTens: tens(q.d.a) - 1, borrowOnes: ones(q.d.a) + 10 } as Response;
+      return grid(q.d.result, q.d.regroup);
     case 'freeVertical': {
       const row = (n: number): [number | null, number | null] => [n >= 10 ? tens(n) : null, ones(n)];
-      return { kind: 'placement', rows: [row(q.d.a), row(q.d.b)], tens: q.d.sum >= 10 ? tens(q.d.sum) : null, ones: ones(q.d.sum) };
+      return { kind: 'placement', rows: [row(q.d.a), row(q.d.b)], tens: q.d.result >= 10 ? tens(q.d.result) : null, ones: ones(q.d.result) };
     }
     case 'spotError':
-      return { kind: 'spot', cell: q.d.wrongCell, fixed: q.d.sum };
+      return { kind: 'spot', cell: q.d.wrongCells[0], fixed: q.d.result };
     case 'matchEqual':
       return { kind: 'match', pairs: q.d.pairs.slice() };
     case 'wordProblem':
-      return { kind: 'word', op: '+', x: q.d.a, y: q.d.b, result: q.d.sum, unit: q.d.unit, x2: q.d.b, y2: q.d.a };
+      return { kind: 'word', op: q.d.op, x: q.d.a, y: q.d.b, result: q.d.result, unit: q.d.unit, x2: q.d.b, y2: q.d.a };
+    case 'subCheck':
+      return { kind: 'subCheck', diff: q.d.a - q.d.b, x: q.d.a - q.d.b, y: q.d.b };
     case 'fillBlank':
       return { kind: 'number', value: q.d.a };
     case 'countScene':

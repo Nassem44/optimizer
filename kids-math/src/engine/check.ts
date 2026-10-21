@@ -1,4 +1,4 @@
-import type { CompareData, GraphData, GraphReadData, Pick, Question, Response, Verdict } from './types';
+import type { CompareData, GraphData, GraphReadData, OpData, Pick, Question, Response, Verdict } from './types';
 import { ones, tens } from './digits';
 
 /* ---------------- الجمع ---------------- */
@@ -25,6 +25,27 @@ export function diagnoseAdd(a: number, b: number, ans: number | null): Verdict {
   if (ans === Math.abs(a - b)) return v('wrong-operation');
   return v('calc');
 }
+
+/** يشخّص إجابة خاطئة لعملية طرح a − b */
+export function diagnoseSub(a: number, b: number, ans: number | null): Verdict {
+  const diff = a - b;
+  const single = b < 10 ? b : null;
+  const vars = { a, b, answer: ans ?? '', correct: diff, digit: single ?? '', onesA: ones(a), onesB: ones(b), tensA: tens(a), newTens: tens(a) - 1, newOnes: ones(a) + 10 };
+  if (ans === diff) return { correct: true };
+  if (ans == null) return { correct: false, error: 'calc', vars };
+  const v = (error: Verdict['error']): Verdict => ({ correct: false, error, vars });
+  if (single !== null && ans === a - single * 10) return v('ones-under-tens');
+  if (ones(a) < ones(b)) {
+    if (ans === (tens(a) - tens(b)) * 10 + (ones(b) - ones(a))) return v('smaller-from-larger');
+    if (ans === (tens(a) - tens(b)) * 10 + (ones(a) + 10 - ones(b))) return v('borrow-no-decrease');
+  }
+  if (diff >= 10 && diff < 100 && ones(diff) !== 0 && ones(diff) !== tens(diff) && ans === reverse2(diff)) return v('reversed-digits');
+  if (diff >= 10 && ans === ones(diff)) return v('forgot-tens');
+  if (ans === a + b) return v('wrong-operation');
+  return v('calc');
+}
+
+export const diagnose = (d: Omit<OpData, 'result' | 'regroup'>, ans: number | null) => (d.op === '+' ? diagnoseAdd(d.a, d.b, ans) : diagnoseSub(d.a, d.b, ans));
 
 const gridValue = (h: number | null | undefined, t: number | null, o: number | null) =>
   o == null ? null : (h ?? 0) * 100 + (t ?? 0) * 10 + o;
@@ -128,7 +149,7 @@ export function check(q: Question, r: Response): Verdict {
     case 'vgrid':
     case 'placeValue': {
       if (r.kind !== 'grid') break;
-      return diagnoseAdd(q.d.a, q.d.b, gridValue(r.hundreds, r.tens, r.ones));
+      return diagnose(q.d, gridValue(r.hundreds, r.tens, r.ones));
     }
     case 'freeVertical': {
       if (r.kind !== 'placement') break;
@@ -143,12 +164,17 @@ export function check(q: Question, r: Response): Verdict {
           return { correct: false, error: 'reversed-digits', vars: { answer: '' } };
         return { correct: false, error: 'calc' };
       }
-      return diagnoseAdd(a, b, gridValue(null, r.tens, r.ones));
+      // في الطرح: المطروح منه في الأعلى
+      if (q.d.op === '-' && vals[0] !== a) return { correct: false, error: 'bigger-on-top', vars: { a, b } };
+      return diagnose(q.d, gridValue(null, r.tens, r.ones));
     }
     case 'spotError': {
       if (r.kind !== 'spot') break;
-      if (r.cell !== q.d.wrongCell) return { correct: false, error: q.d.flavor === 'misplaced' ? 'ones-under-tens' : 'forgot-carry', vars: diagnoseAdd(q.d.a, q.d.b, q.d.shownSum).vars };
-      return diagnoseAdd(q.d.a, q.d.b, r.fixed);
+      if (!q.d.wrongCells.includes(r.cell)) {
+        const shown = diagnose(q.d, q.d.shownSum);
+        return { correct: false, error: shown.error, vars: shown.vars };
+      }
+      return diagnose(q.d, r.fixed);
     }
     case 'matchEqual': {
       if (r.kind !== 'match') break;
@@ -160,10 +186,11 @@ export function check(q: Question, r: Response): Verdict {
     case 'wordProblem': {
       if (r.kind !== 'word') break;
       const { a, b } = q.d;
-      if (r.op === '-') return { correct: false, error: 'wrong-operation' };
-      const operandsOk = (x: number | null | undefined, y: number | null | undefined) => (x === a && y === b) || (x === b && y === a);
-      if (r.op !== '+' || !operandsOk(r.x, r.y)) return { correct: false, error: 'calc', vars: { a, b } };
-      const v = diagnoseAdd(a, b, r.result);
+      if (r.op && r.op !== q.d.op) return { correct: false, error: 'wrong-operation' };
+      if (q.d.op === '-' && r.x === b && r.y === a) return { correct: false, error: 'bigger-on-top', vars: { a, b } };
+      const operandsOk = (x: number | null | undefined, y: number | null | undefined) => (x === a && y === b) || (q.d.op === '+' && x === b && y === a);
+      if (r.op !== q.d.op || !operandsOk(r.x, r.y)) return { correct: false, error: 'calc', vars: { a, b } };
+      const v = diagnose(q.d, r.result);
       if (!v.correct) return v;
       if (r.unit !== q.d.unit) return { correct: false, error: 'wrong-unit' };
       if (q.d.twoWays && !(r.x2 === r.y && r.y2 === r.x)) return { correct: false, error: 'swapped-not-equal', vars: { a: r.x!, b: r.y! } };
@@ -173,6 +200,15 @@ export function check(q: Question, r: Response): Verdict {
       if (r.kind !== 'number') break;
       if (r.value === q.d.a) return { correct: true };
       return { correct: false, error: r.value === q.d.b || r.value === q.d.a + q.d.b ? 'swapped-not-equal' : 'calc', vars: { a: q.d.a, b: q.d.b } };
+    }
+    case 'subCheck': {
+      if (r.kind !== 'subCheck') break;
+      const { a, b } = q.d;
+      const v = diagnoseSub(a, b, r.diff);
+      if (!v.correct) return v;
+      // التحقق: الفرق + المطروح = المطروح منه (بأي ترتيب)
+      if ((r.x === a - b && r.y === b) || (r.x === b && r.y === a - b)) return { correct: true };
+      return { correct: false, error: 'check-wrong', vars: { a, b, correct: a - b } };
     }
     case 'countScene':
     case 'graphToTable':

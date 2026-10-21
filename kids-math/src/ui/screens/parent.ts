@@ -11,10 +11,10 @@ import { Slots, numpad } from '../numpad';
 import type { App } from '../app';
 
 const KIND_LABELS: Record<Kind, string> = {
-  vgrid: 'شبكة الجمع الرأسي', placeValue: 'جدول القيمة المكانية', freeVertical: 'تحويل لرأسي بالسحب', spotError: 'اكتشف الخطأ',
+  vgrid: 'الشبكة الرأسية', placeValue: 'جدول القيمة المكانية', freeVertical: 'تحويل لرأسي بالسحب', spotError: 'اكتشف الخطأ',
   matchEqual: 'صِل المتساوي', wordProblem: 'مسألة لفظية', fillBlank: 'أكمل الفراغ', countScene: 'مشهد العدّ',
   completeGraph: 'إكمال الرسم', graphToTable: 'من الرسم للجدول', missingName: 'الصنف الناقص', graphRead: 'قراءة الرسم',
-  conceptual: 'الرسم أم الجدول', compareGraphs: 'مقارنة رسمين',
+  conceptual: 'الرسم أم الجدول', compareGraphs: 'مقارنة رسمين', subCheck: 'اطرح وتحقق بالجمع',
 };
 
 /** قفل ولي الأمر: سؤال ضرب لا يعرفه طفل الصف الثاني */

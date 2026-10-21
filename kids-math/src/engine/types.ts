@@ -14,7 +14,8 @@ export type Kind =
   | 'missingName' //    اسم الصنف الناقص
   | 'graphRead' //      أسئلة قراءة الرسم
   | 'conceptual' //     الرسم أم الجدول؟
-  | 'compareGraphs'; // رسمان متجاوران
+  | 'compareGraphs' // رسمان متجاوران
+  | 'subCheck'; //      اطرح ثم تحقق بالجمع
 
 export type ErrorType =
   | 'ones-under-tens'
@@ -30,6 +31,10 @@ export type ErrorType =
   | 'more-less-confusion'
   | 'wrong-order'
   | 'swapped-not-equal'
+  | 'smaller-from-larger'
+  | 'borrow-no-decrease'
+  | 'bigger-on-top'
+  | 'check-wrong'
   | 'calc';
 
 export type AddForm = '2d+1d' | '1d+2d' | '2d+2d' | 'tens+tens' | 'tens+2d' | '2d+tens';
@@ -44,6 +49,21 @@ export interface AddLimits {
   ones10Share?: number;
 }
 
+export type SubForm = '2d-2d' | '2d-1d' | 'tens-2d';
+
+export interface SubLimits {
+  op: 'sub';
+  /** none: لا استلاف (آحاد المطروح منه ≥ آحاد المطروح) — borrow: استلاف من العشرات — any: أيهما */
+  borrow: 'none' | 'borrow' | 'any';
+  maxMinuend: number;
+  minResult: number;
+  forms: SubForm[];
+  /** للاستلاف: نسبة أسئلة "ناتج العشرات صفر" (٣٥ − ٢٧ = ٨) */
+  tensZeroShare?: number;
+}
+
+export type ArithLimits = AddLimits | SubLimits;
+
 export interface GraphLimits {
   op: 'graph';
   minCategories: number;
@@ -55,13 +75,13 @@ export interface GraphLimits {
   joinAmounts?: number[];
 }
 
-export type Limits = AddLimits | GraphLimits;
+export type Limits = AddLimits | SubLimits | GraphLimits;
 
 export interface WordTemplate {
   text: string; // {name} {a} {b}
   gender: 'm' | 'f';
   unit: string;
-  op: '+';
+  op: '+' | '-';
 }
 
 export interface CommonMistake {
@@ -87,6 +107,8 @@ export interface Lesson {
   hints: Partial<Record<Kind, string>>;
   commonMistakes: CommonMistake[];
   defaultUnlocked?: boolean;
+  /** ملاحظة لولي الأمر/المطوّر (مثل بند لم يُراجع في الكتاب) */
+  notes?: string;
   /** أسماء المجموعتين في درس مقارنة رسمين */
   groups?: [string, string][];
 }
@@ -104,35 +126,44 @@ export interface Shared {
 
 /* ---------- بيانات الأسئلة ---------- */
 
-export interface AddData {
+/** عملية جمع أو طرح على عددين */
+export interface OpData {
   a: number;
   b: number;
-  sum: number;
-  carry: boolean;
+  op: '+' | '-';
+  result: number;
+  /** حمل في الجمع أو استلاف في الطرح */
+  regroup: boolean;
 }
 
-export interface SpotErrorData extends AddData {
-  flavor: 'misplaced' | 'forgot-carry';
+export interface SpotErrorData extends OpData {
+  flavor: 'misplaced' | 'forgot-carry' | 'smaller-from-larger';
   shownSum: number;
   /** اسم الطفل الآخر الذي أخطأ */
   who: string;
-  /** الخلية التي فيها الخطأ: 'b-t' رقم العدد الثاني الموضوع تحت العشرات، 's-t' عشرات الناتج */
-  wrongCell: 'b-t' | 's-t';
+  /** الخلايا التي تُعدّ مكان الخطأ: 'b-t' رقم العدد الثاني تحت العشرات، 's-t'/'s-o' خانتا الناتج */
+  wrongCells: string[];
 }
 
 export interface MatchData {
-  top: AddData[];
-  bottom: AddData[];
+  top: OpData[];
+  bottom: OpData[];
   /** pairs[i] = index في bottom المساوي لـ top[i] */
   pairs: number[];
   commutative: boolean;
 }
 
-export interface WordData extends AddData {
+export interface WordData extends OpData {
   text: string;
   unit: string;
   unitChoices: string[];
   twoWays: boolean;
+}
+
+/** الطرح ثم التحقق بالجمع: الفرق + المطروح = المطروح منه */
+export interface SubCheckData {
+  a: number;
+  b: number;
 }
 
 export interface FillBlankData {
@@ -194,9 +225,9 @@ export interface CompareData {
 }
 
 export type QData =
-  | { kind: 'vgrid'; d: AddData }
-  | { kind: 'placeValue'; d: AddData }
-  | { kind: 'freeVertical'; d: AddData }
+  | { kind: 'vgrid'; d: OpData }
+  | { kind: 'placeValue'; d: OpData }
+  | { kind: 'freeVertical'; d: OpData }
   | { kind: 'spotError'; d: SpotErrorData }
   | { kind: 'matchEqual'; d: MatchData }
   | { kind: 'wordProblem'; d: WordData }
@@ -207,7 +238,8 @@ export type QData =
   | { kind: 'missingName'; d: MissingNameData }
   | { kind: 'graphRead'; d: GraphReadData }
   | { kind: 'conceptual'; d: GraphData }
-  | { kind: 'compareGraphs'; d: CompareData };
+  | { kind: 'compareGraphs'; d: CompareData }
+  | { kind: 'subCheck'; d: SubCheckData };
 
 export interface QRef {
   lessonId: string;
@@ -224,7 +256,8 @@ export type Pick = { name: string } | { num: number };
 
 export type Response =
   | { kind: 'number'; value: number }
-  | { kind: 'grid'; tens: number | null; ones: number | null; hundreds?: number | null; carry?: number | null }
+  | { kind: 'grid'; tens: number | null; ones: number | null; hundreds?: number | null; carry?: number | null; borrowTens?: number | null; borrowOnes?: number | null }
+  | { kind: 'subCheck'; diff: number | null; x: number | null; y: number | null }
   /** rows[r] = [رقم خانة العشرات، رقم خانة الآحاد] في الصف r بعد السحب، ثم الناتج */
   | { kind: 'placement'; rows: [number | null, number | null][]; tens: number | null; ones: number | null }
   | { kind: 'spot'; cell: string; fixed: number | null }

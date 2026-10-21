@@ -15,6 +15,10 @@ export const ERROR_LABELS: Record<ErrorType, string> = {
   'more-less-confusion': 'خلط الأكبر والأقل',
   'wrong-order': 'ترتيب خاطئ',
   'swapped-not-equal': 'لم يدرك أن تبديل الترتيب لا يغيّر الناتج',
+  'smaller-from-larger': 'طرح الصغير من الكبير في الآحاد بدل الاستلاف',
+  'borrow-no-decrease': 'استلف دون أن يُنقص العشرات',
+  'bigger-on-top': 'وضع المطروح في الأعلى / عكس ترتيب الطرح',
+  'check-wrong': 'خطأ في التحقق بالجمع',
   calc: 'خطأ حسابي آخر',
 };
 
@@ -33,4 +37,8 @@ export const DEFAULT_HINTS: Partial<Record<ErrorType, string>> = {
   'more-less-confusion': 'الأكثر هو الأطول، والأقل هو الأقصر.',
   'wrong-order': 'ابدأ بـ{start}.',
   'swapped-not-equal': 'تغيير ترتيب العددين في الجمع لا يغيّر الناتج.',
+  'smaller-from-larger': 'لا نطرح الآحاد بالعكس! {onesA} أصغر من {onesB}: خذ ١ من العشرات أولاً.',
+  'borrow-no-decrease': 'أخذت ١ من العشرات؟ إذن تصبح العشرات {newTens} وليس {tensA}. اشطبها واكتب الجديد في الدائرة.',
+  'bigger-on-top': 'المطروح منه ({a}) يكتب في الأعلى، والمطروح ({b}) تحته.',
+  'check-wrong': 'للتحقق: الفرق + المطروح = المطروح منه.',
 };

@@ -1,7 +1,7 @@
 // صفحة تعرض مكوّناً واحداً بمدخلات ثابتة لاختبار العرض في متصفح حقيقي (tests/ui).
 import { lessonById } from '../engine/content';
 import { generate } from '../engine/generate';
-import { mkAdd } from '../engine/generators/addition';
+import { mkOp } from '../engine/generators/arith';
 import type { Kind, Question } from '../engine/types';
 import { h } from './dom';
 import { Slots, numpad } from './numpad';
@@ -13,7 +13,7 @@ export function harness(hash: string): HTMLElement {
   const kind = (p.get('kind') ?? 'vgrid') as Kind;
   let q: Question = generate({ lessonId, kind, seed: Number(p.get('seed') ?? 1) });
   if (p.has('a') && (q.kind === 'vgrid' || q.kind === 'placeValue' || q.kind === 'freeVertical')) {
-    q = { ...q, d: mkAdd(Number(p.get('a')), Number(p.get('b'))) } as Question;
+    q = { ...q, d: mkOp(Number(p.get('a')), Number(p.get('b')), q.d.op) } as Question;
   }
   const slots = new Slots();
   const view = viewFor(q, { lesson: lessonById(lessonId), slots, say: () => {} });

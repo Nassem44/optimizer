@@ -1,5 +1,5 @@
-// الجمع الرأسي. الإطار دائماً dir="ltr": العشرات يساراً (وردي) والآحاد يميناً (أزرق)، و+ على يمين العدد الثاني.
-import type { AddData, Question, Response, SpotErrorData } from '../../engine/types';
+// الجمع والطرح الرأسي. الإطار دائماً dir="ltr": العشرات يساراً (وردي) والآحاد يميناً (أزرق)، و+ على يمين العدد الثاني.
+import type { OpData, Question, Response, SpotErrorData } from '../../engine/types';
 import { ar, ones, tens } from '../../engine/digits';
 import { h } from '../dom';
 import { draggable } from '../drag';
@@ -38,6 +38,8 @@ export function vframe(opts: { cols: Col[]; rows: HTMLElement[][]; result: HTMLE
   return g;
 }
 
+export const signOf = (op: '+' | '-') => (op === '+' ? '+' : '−');
+
 /** خانات الناتج: الآحاد أولاً إلزامياً، ثم العشرات. والحمل في دائرة اختيارية فوق العشرات. */
 function resultSlots(ctx: Ctx, withCarry: boolean, before?: () => string | null) {
   const { slots } = ctx;
@@ -66,17 +68,53 @@ function resultSlots(ctx: Ctx, withCarry: boolean, before?: () => string | null)
 }
 
 const lessonHasCarry = (ctx: Ctx) => ctx.lesson.limits.op === 'add' && ctx.lesson.limits.carry !== 'none';
+const lessonHasBorrow = (ctx: Ctx) => ctx.lesson.limits.op === 'sub' && ctx.lesson.limits.borrow !== 'none';
 
-export function vgridView(q: Question & { d: AddData }, ctx: Ctx, extraTop?: HTMLElement): KindView {
+/**
+ * دوائر الاستلاف فوق المطروح منه (اختيارية، يكتبها الطفل بنفسه كما في الكتاب):
+ * فوق العشرات الرقم الجديد بعد أخذ ١، وفوق الآحاد الآحاد بعد إضافة ١٠. الرقم القديم يُشطب تلقائياً.
+ */
+function borrowSlots(ctx: Ctx, top: HTMLElement[], then: () => Slot) {
+  const { slots } = ctx;
+  const bOnes: Slot = slots.make({ max: 2, cls: 'carry borrow', label: 'الآحاد بعد الاستلاف', next: then });
+  const bTens: Slot = slots.make({ cls: 'carry borrow', label: 'العشرات بعد الاستلاف', next: () => bOnes });
+  bTens.onChange = () => top[0].classList.toggle('struck', bTens.value !== '');
+  bOnes.onChange = () => top[1].classList.toggle('struck', bOnes.value !== '');
+  return {
+    els: [bTens.el, bOnes.el],
+    read: () => ({ borrowTens: slots.num(bTens), borrowOnes: slots.num(bOnes) }),
+    fill: (r: Response) => {
+      if (r.kind !== 'grid') return;
+      if (r.borrowTens != null) slots.set(bTens, String(r.borrowTens));
+      if (r.borrowOnes != null) slots.set(bOnes, String(r.borrowOnes));
+    },
+  };
+}
+
+export function vgridView(q: Question & { d: OpData }, ctx: Ctx, extraTop?: HTMLElement): KindView {
   const rs = resultSlots(ctx, lessonHasCarry(ctx));
+  const top = numberCells(q.d.a);
+  const bs = lessonHasBorrow(ctx) ? borrowSlots(ctx, top, () => rs.onesS) : null;
   const frame = vframe({
     cols: ['t', 'o'],
-    carry: rs.carryS ? [rs.carryS.el, null] : undefined,
-    rows: [numberCells(q.d.a), numberCells(q.d.b)],
+    carry: rs.carryS ? [rs.carryS.el, null] : bs ? bs.els : undefined,
+    rows: [top, numberCells(q.d.b)],
     result: [rs.tensS.el, rs.onesS.el],
+    sign: signOf(q.d.op),
   });
   ctx.slots.activate(rs.onesS);
-  return { el: h('div', { class: 'kind-vertical' }, extraTop, frame), read: rs.read, reveal: rs.fill, usesNumpad: true };
+  return {
+    el: h('div', { class: 'kind-vertical' }, extraTop, frame),
+    read: () => {
+      const r = rs.read();
+      return r && bs ? ({ ...r, ...bs.read() } as Response) : r;
+    },
+    reveal: (r) => {
+      rs.fill(r);
+      bs?.fill(r);
+    },
+    usesNumpad: true,
+  };
 }
 
 /* ---------- جدول القيمة المكانية: أعواد العشرات ومكعبات الآحاد ---------- */
@@ -84,8 +122,29 @@ export function vgridView(q: Question & { d: AddData }, ctx: Ctx, extraTop?: HTM
 const rods = (n: number) => h('div', { class: 'rods' }, Array.from({ length: n }, () => h('div', { class: 'rod' })));
 const cubes = (n: number) => h('div', { class: 'cubes' }, Array.from({ length: n }, () => h('div', { class: 'cube' })));
 
-export function placeValueView(q: Question & { d: AddData }, ctx: Ctx): KindView {
-  const { a, b, carry } = q.d;
+/** الطرح: المطروح منه بالأعواد والمكعبات، والمطروح مشطوب منها. عند الاستلاف يُفكّ عود إلى ١٠ مكعبات. */
+function subPlaceValue(q: Question & { d: OpData }, ctx: Ctx): KindView {
+  const { a, b, regroup } = q.d;
+  const keptRods = regroup ? tens(a) - 1 : tens(a);
+  const rodEls = Array.from({ length: keptRods }, (_, i) => h('div', { class: 'rod' + (i >= keptRods - tens(b) ? ' crossed' : '') }));
+  const totalOnes = regroup ? ones(a) + 10 : ones(a);
+  const cubeEls = Array.from({ length: totalOnes }, (_, i) =>
+    h('div', { class: 'cube' + (regroup && i >= ones(a) ? ' broken' : '') + (i >= totalOnes - ones(b) ? ' crossed' : '') }));
+  const table = h(
+    'div', { class: 'pv', dir: 'ltr' },
+    h('div', { class: 'pvh c-t' }, 'عشرات'), h('div', { class: 'pvh c-o' }, 'آحاد'), h('div'),
+    h('div', { class: 'pvc c-t' }, h('div', { class: 'rods' }, rodEls)), h('div', { class: 'pvc c-o' }, h('div', { class: 'cubes' }, cubeEls)),
+    h('div', { class: 'pvn' }, ar(a), h('br'), '− ' + ar(b)),
+  );
+  const note = regroup
+    ? h('div', { class: 'note' }, `أخذنا عوداً من العشرات وفككناه ١٠ مكعبات، فصارت الآحاد ${ar(totalOnes)}. المشطوب هو ما نطرحه.`)
+    : h('div', { class: 'note' }, 'المشطوب هو ما نطرحه.');
+  return vgridView(q, ctx, h('div', { class: 'pv-wrap' }, table, note));
+}
+
+export function placeValueView(q: Question & { d: OpData }, ctx: Ctx): KindView {
+  if (q.d.op === '-') return subPlaceValue(q, ctx);
+  const { a, b, regroup: carry } = q.d;
   const table = h(
     'div',
     { class: 'pv', dir: 'ltr' },
@@ -103,7 +162,7 @@ export function expr(...parts: (number | string)[]): HTMLElement {
   return h('div', { class: 'expr', dir: 'rtl' }, parts.map((p) => h('span', { class: typeof p === 'number' ? 'n' : 'op', dir: 'ltr' }, typeof p === 'number' ? ar(p) : p)));
 }
 
-export function freeVerticalView(q: Question & { d: AddData }, ctx: Ctx): KindView {
+export function freeVerticalView(q: Question & { d: OpData }, ctx: Ctx): KindView {
   const { a, b } = q.d;
   const pool = h('div', { class: 'pool' });
   let selected: HTMLElement | null = null;
@@ -144,13 +203,13 @@ export function freeVerticalView(q: Question & { d: AddData }, ctx: Ctx): KindVi
 
   const allPlaced = () => tiles.every((t) => t.parentElement?.classList.contains('drop'));
   const rs = resultSlots(ctx, false, () => (allPlaced() ? null : 'اسحب كل الأرقام إلى خاناتها أولاً'));
-  const frame = vframe({ cols: ['t', 'o'], rows: cells, result: [rs.tensS.el, rs.onesS.el] });
+  const frame = vframe({ cols: ['t', 'o'], rows: cells, result: [rs.tensS.el, rs.onesS.el], sign: signOf(q.d.op) });
   const cellDigit = (c: HTMLElement) => {
     const t = c.querySelector('.tile') as HTMLElement | null;
     return t ? Number(t.dataset.digit) : null;
   };
   return {
-    el: h('div', { class: 'kind-vertical' }, expr(a, '+', b), pool, frame),
+    el: h('div', { class: 'kind-vertical' }, expr(a, signOf(q.d.op), b), pool, frame),
     usesNumpad: true,
     read: () => {
       if (!allPlaced()) return null;
@@ -198,7 +257,7 @@ export function spotErrorView(q: Question & { d: SpotErrorData }, ctx: Ctx): Kin
   // الحل الخاطئ: العدد ذو الرقم الواحد مكتوب تحت العشرات
   const rowB = d.flavor === 'misplaced' ? [pickable('t', d.b, 'b-t'), pickable('o', null, 'b-o')] : [pickable('t', d.b >= 10 ? tens(d.b) : null, 'b-t'), pickable('o', ones(d.b), 'b-o')];
   const res = [pickable('t', tens(d.shownSum), 's-t'), pickable('o', ones(d.shownSum), 's-o')];
-  const frame = vframe({ cols: ['t', 'o'], rows: [rowA, rowB], result: res });
+  const frame = vframe({ cols: ['t', 'o'], rows: [rowA, rowB], result: res, sign: signOf(d.op) });
   const fix = ctx.slots.make({ max: 3, cls: 'wide', label: 'الناتج الصحيح', guard: () => (picked ? null : 'المس الرقم الخطأ أولاً') });
   return {
     el: h('div', { class: 'kind-vertical' }, h('div', { class: 'who' }, `حل ${d.who}:`), frame, h('div', { class: 'fix-row' }, 'الناتج الصحيح: ', fix.el)),

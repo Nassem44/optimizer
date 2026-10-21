@@ -1,10 +1,10 @@
-import type { FillBlankData, MatchData, Question, WordData } from '../../engine/types';
+import type { FillBlankData, MatchData, OpData, Question, SubCheckData, WordData } from '../../engine/types';
 import { ar } from '../../engine/digits';
 import { h } from '../dom';
 import type { Slot } from '../numpad';
 import type { Ctx, KindView } from './types';
 
-const opText = (a: number, b: number) => h('span', { class: 'expr-inline', dir: 'rtl' }, h('span', { dir: 'ltr' }, ar(a)), ' + ', h('span', { dir: 'ltr' }, ar(b)));
+const opText = (o: OpData) => h('span', { class: 'expr-inline', dir: 'rtl' }, h('span', { dir: 'ltr' }, ar(o.a)), o.op === '+' ? ' + ' : ' − ', h('span', { dir: 'ltr' }, ar(o.b)));
 
 /* ---------- صِل العمليات المتساوية ---------- */
 
@@ -14,8 +14,8 @@ export function matchView(q: Question & { d: MatchData }, _ctx: Ctx): KindView {
   const d = q.d;
   const pairs: (number | null)[] = d.top.map(() => null);
   let pendingTop: number | null = null;
-  const topEls = d.top.map((t, i) => h('button', { class: 'card match', type: 'button', onclick: () => tapTop(i) }, opText(t.a, t.b)));
-  const botEls = d.bottom.map((t, j) => h('button', { class: 'card match', type: 'button', onclick: () => tapBottom(j) }, opText(t.a, t.b)));
+  const topEls = d.top.map((t, i) => h('button', { class: 'card match', type: 'button', onclick: () => tapTop(i) }, opText(t)));
+  const botEls = d.bottom.map((t, j) => h('button', { class: 'card match', type: 'button', onclick: () => tapBottom(j) }, opText(t)));
 
   const paint = () => {
     topEls.forEach((el, i) => {
@@ -122,5 +122,32 @@ export function fillBlankView(q: Question & { d: FillBlankData }, ctx: Ctx): Kin
     usesNumpad: true,
     read: () => (s.value === '' ? null : { kind: 'number', value: Number(s.value) }),
     reveal: (r) => r.kind === 'number' && ctx.slots.set(s, String(r.value)),
+  };
+}
+
+/* ---------- اطرح ثم تحقق بالجمع ---------- */
+
+export function subCheckView(q: Question & { d: SubCheckData }, ctx: Ctx): KindView {
+  const { a, b } = q.d;
+  const { slots } = ctx;
+  const diff: Slot = slots.make({ max: 2, cls: 'wide', label: 'الفرق', next: () => x });
+  const x: Slot = slots.make({ max: 2, cls: 'wide', label: 'التحقق: العدد الأول', next: () => y });
+  const y: Slot = slots.make({ max: 2, cls: 'wide', label: 'التحقق: العدد الثاني' });
+  const term = (n: Node, label: string) => h('span', { class: 'term' }, n, h('small', null, label));
+  const n = (v: number) => h('span', { class: 'n', dir: 'ltr' }, ar(v));
+  slots.activate(diff);
+  return {
+    el: h('div', { class: 'kind-fill' },
+      h('div', { class: 'expr big', dir: 'rtl' }, term(n(a), 'المطروح منه'), h('span', { class: 'op' }, '−'), term(n(b), 'المطروح'), h('span', { class: 'op' }, '='), term(diff.el, 'الفرق')),
+      h('div', { class: 'step-label' }, 'التحقق: الفرق + المطروح = المطروح منه'),
+      h('div', { class: 'expr', dir: 'rtl' }, x.el, h('span', { class: 'op' }, '+'), y.el, h('span', { class: 'op' }, '='), n(a))),
+    usesNumpad: true,
+    read: () => (diff.value === '' || x.value === '' || y.value === '' ? null : { kind: 'subCheck', diff: slots.num(diff), x: slots.num(x), y: slots.num(y) }),
+    reveal: (r) => {
+      if (r.kind !== 'subCheck') return;
+      slots.set(diff, String(r.diff));
+      slots.set(x, String(r.x));
+      slots.set(y, String(r.y));
+    },
   };
 }

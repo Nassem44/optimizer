@@ -234,3 +234,13 @@ h2 { font-size: 22px; margin: 0 0 8px; }
   .match-row { grid-template-columns: repeat(2, 1fr); }
   .bars li { grid-template-columns: 1fr 1fr 40px; }
 }
+
+/* ---------- الطرح ---------- */
+.struck { text-decoration: line-through; text-decoration-thickness: 4px; text-decoration-color: var(--bad); opacity: .6; }
+.carry.borrow { border-color: var(--ink); color: var(--ink); }
+.carry.borrow + .carry.borrow, .carry.borrow:nth-of-type(2) { border-color: var(--ones); color: var(--ones); }
+.rod.crossed, .cube.crossed { position: relative; opacity: .45; }
+.rod.crossed::after, .cube.crossed::after { content: ''; position: absolute; inset: -2px; background: linear-gradient(45deg, transparent 44%, var(--bad) 44% 56%, transparent 56%); }
+.cube.broken { background: #f5b3dc; border-color: #9d2f78; }
+.term { display: inline-flex; flex-direction: column; align-items: center; }
+.term small { font-size: 15px; color: var(--muted); font-weight: 400; }
