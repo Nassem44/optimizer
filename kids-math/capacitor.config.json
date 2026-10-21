@@ -1,0 +1,6 @@
+{
+  "appId": "com.family.kidsmath",
+  "appName": "رياضيات تانية",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false }
+}

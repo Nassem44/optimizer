@@ -1,0 +1,76 @@
+{
+  "id": "ch1-lesson3",
+  "chapter": 1,
+  "lesson": 3,
+  "order": 3,
+  "title": "المقارنة بين رسمين بيانيين",
+  "subtitle": "الفصل ١ — الدرس ٣",
+  "pages": "٢١–٢٤",
+  "skill": "graph-compare",
+  "questionTypes": [
+    {
+      "kind": "compareGraphs",
+      "weight": 1,
+      "variants": [
+        "maxIn",
+        "sameInBoth",
+        "sumAcross",
+        "howMuchMore",
+        "biggestDiff",
+        "orderOne"
+      ]
+    }
+  ],
+  "limits": {
+    "op": "graph",
+    "minCategories": 4,
+    "maxCategories": 5,
+    "minCount": 1,
+    "maxCount": 10,
+    "maxRows": 10,
+    "maxSum": 20
+  },
+  "hints": {
+    "compareGraphs": "اكتب عدد الدوائر فوق كل عمود في الرسمين قبل أن تجيب."
+  },
+  "commonMistakes": [
+    {
+      "id": "number-instead-of-name",
+      "hint": "السؤال يطلب اسم الصنف، لا العدد."
+    },
+    {
+      "id": "more-less-confusion",
+      "hint": "الأكبر هو العمود الأطول."
+    },
+    {
+      "id": "wrong-order",
+      "hint": "ابدأ بالعمود {start}، ثم الذي يليه."
+    },
+    {
+      "id": "wrong-operation",
+      "hint": "بكم يزيد؟ نطرح الأصغر من الأكبر. المجموع؟ نجمع."
+    },
+    {
+      "id": "count-off-by-one",
+      "hint": "عُدّ الدوائر مرة أخرى في الرسمين."
+    }
+  ],
+  "groups": [
+    [
+      "فصل ٢/١",
+      "فصل ٢/٢"
+    ],
+    [
+      "فريق النجوم",
+      "فريق الأبطال"
+    ],
+    [
+      "يوم السبت",
+      "يوم الأحد"
+    ],
+    [
+      "حديقة سارة",
+      "حديقة يوسف"
+    ]
+  ]
+}

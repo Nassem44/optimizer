@@ -1,0 +1,30 @@
+{
+  "id": "ch1-lesson2",
+  "chapter": 1,
+  "lesson": 2,
+  "order": 2,
+  "title": "قراءة الرسم البياني والجدول",
+  "subtitle": "الفصل ١ — الدرسان ١ و٢",
+  "pages": "١٢–٢٠",
+  "skill": "graph-read",
+  "questionTypes": [
+    { "kind": "graphToTable", "weight": 2 },
+    { "kind": "missingName", "weight": 1 },
+    { "kind": "graphRead", "weight": 6, "variants": ["most", "least", "howMany", "sum", "diff", "moreOf", "equalPair", "orderAsc", "orderDesc", "join"] },
+    { "kind": "conceptual", "weight": 0.5 }
+  ],
+  "limits": { "op": "graph", "minCategories": 4, "maxCategories": 6, "minCount": 1, "maxCount": 10, "maxRows": 10, "maxSum": 20, "joinAmounts": [1, 2, 3] },
+  "hints": {
+    "graphToTable": "عُدّ الدوائر في كل عمود من أسفل لأعلى.",
+    "missingName": "قارن عدد الدوائر بالأعداد في الجدول.",
+    "graphRead": "اكتب عدد الدوائر فوق كل عمود في ذهنك أولاً.",
+    "conceptual": "في الرسم ترى العمود الأطول والأقصر بعينك مباشرة."
+  },
+  "commonMistakes": [
+    { "id": "number-instead-of-name", "hint": "السؤال يطلب اسم الصنف، لا العدد. اختر الأسماء." },
+    { "id": "more-less-confusion", "hint": "انتبه: الأكثر هو العمود الأطول، والأقل هو العمود الأقصر." },
+    { "id": "wrong-order", "hint": "ابدأ بالعمود {start}، ثم الذي يليه." },
+    { "id": "count-off-by-one", "hint": "عُدّ الدوائر مرة أخرى بإصبعك من أسفل لأعلى." },
+    { "id": "wrong-operation", "hint": "المجموع يعني أن نجمع العددين، والفرق يعني أن نطرح الأصغر من الأكبر." }
+  ]
+}

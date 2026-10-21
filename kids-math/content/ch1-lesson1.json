@@ -1,0 +1,23 @@
+{
+  "id": "ch1-lesson1",
+  "chapter": 1,
+  "lesson": 1,
+  "order": 1,
+  "title": "العدّ وإكمال الرسم البياني",
+  "subtitle": "الفصل ١ — الدرسان ١ و٢",
+  "pages": "١٢–٢٠",
+  "skill": "graph-count",
+  "defaultUnlocked": true,
+  "questionTypes": [
+    { "kind": "countScene", "weight": 3 },
+    { "kind": "completeGraph", "weight": 3 }
+  ],
+  "limits": { "op": "graph", "minCategories": 4, "maxCategories": 6, "minCount": 1, "maxCount": 10, "maxRows": 10, "maxSum": 20 },
+  "hints": {
+    "countScene": "المس كل شيء تعدّه ليُشطب، حتى لا تعدّه مرتين.",
+    "completeGraph": "لوّن الدوائر من أسفل لأعلى: دائرة لكل شيء."
+  },
+  "commonMistakes": [
+    { "id": "count-off-by-one", "hint": "اقتربت! اشطب على كل شيء تعدّه حتى لا تعدّه مرتين ولا تنساه." }
+  ]
+}
